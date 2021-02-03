@@ -4,3 +4,9 @@ i can git pull this file
 step2:
   again this file 
 add :   hello world, you can love the world!but you hate the world!
+
+oh!shit test2 fail,i must test3
+
+come on!!!
+
+
