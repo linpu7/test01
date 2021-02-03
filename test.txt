@@ -9,4 +9,7 @@ oh!shit test2 fail,i must test3
 
 come on!!!
 
+ok!!! test pass !!!!
+
+100
 
