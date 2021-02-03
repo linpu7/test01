@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:security="http://www.springframework.org/schema/security"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+                  http://www.springframework.org/schema/beans/spring-beans.xsd
+                  http://www.springframework.org/schema/mvc
+                  http://www.springframework.org/schema/mvc/spring-mvc.xsd
+                  http://www.springframework.org/schema/context
+                  http://www.springframework.org/schema/context/spring-context.xsd
+                          http://www.springframework.org/schema/security
+                          http://www.springframework.org/schema/security/spring-security.xsd">
+    <!--
+      ① 配置哪些链接可以放行(没有认证通过也可以访问的资源)
+      security="none"：没有权限
+      pattern="/login.html"：没有任何权限，可以访问login.html
+    -->
+    <!--<security:http security="none" pattern="/login.html"></security:http>-->
+
+    <!--
+    ② 定义哪些链接不可以放行(必须通过认证才能访问的资源)，及需要有角色，有权限才可以放行访问资源
+    <security:http auto-config="true" use-expressions="true">
+          auto-config="true":开启自动配置 由springsecurity提供登录页面，提供登录的url地址，处理东路也控制器;退出的url地址
+          use-expressions="true"：使用表达式的方式控制权限
+             security:intercept-url：定义哪些链接不可以放行，需要当前角色和权限才能放行
+                pattern="/**"：要求系统中的所有资源，都必须通过角色和权限才能访问
+                access：指定角色和权限
+                   如果使用表达式use-expressions="true"
+                       access="hasRole('ROLE_ADMIN')：表示具有ROLE_ADMIN的角色才能访问系统的资源
+                   如果不使用表达式use-expressions="false"
+                       access="ROLE_ADMIN：表示具有ROLE_ADMIN的角色才能访问系统的资源
+    -->
+
+
+    <!--
+        pbro:
+            配置权限框架
+                要求后台系统必须
+                    认证(登录) 如果不登陆, 不能访问系统当中的任何资源
+                     授权: 系统中的哪些资源可以使用
+
+         授权
+            auto-config="true"  springsecurity 权限框架提供登录的页面,处理登录的控制器
+            use-expressions="true"  使用权限框架中的变大时来控制资源的访问
+
+            security:intercept-url 权限控制
+            pattern="/**"  控制的资源有那些
+            access 访问资源的条件 hasRole('ROLE_ADMIN') 必须登录之后是ROLE_ADMIN角色才能才能访问
+    -->
+    <!--
+        http：用于定义相关权限控制
+        指定哪些资源不需要进行权限校验，可以使用通配符
+    -->
+
+    <security:http security="none" pattern="/css/**"></security:http>
+    <security:http security="none" pattern="/js/**"/>
+    <security:http security="none" pattern="/login.jsp"/>
+    <security:http auto-config="true" use-expressions="true">
+        <!--        <security:intercept-url pattern="/**" access="hasRole('ROLE_ADMIN')"></security:intercept-url>-->
+        <!--只要认证通过就可以访问-->
+        <security:intercept-url pattern="/index.html" access="isAuthenticated()"/>
+        <security:intercept-url pattern="/a.html" access="isAuthenticated()"/>
+
+        <!--  b.html 页面 登录成功之后判断是不是具备add权限-->
+        <security:intercept-url pattern="/b.html" access="hasAuthority('add')"/>
+        <!--c.html 页面 登录成功之后判断是不是具备ABC权限 -->
+        <security:intercept-url pattern="/c.html" access="hasRole('ABC')"/>
+        <!--拥有ROLE_ADMIN角色就可以访问c.html页面，
+     注意：此处虽然写的是ADMIN角色，框架会自动加上前缀ROLE_-->
+        <security:intercept-url pattern="/d.html" access="hasRole('ROLE_ADMIN')"/>
+
+
+        <!-- username-parameter="username"  等价于 getParameter("username")
+                       username-parameter="username"  获取用户名,默认值是username
+                      password-parameter="password"    获取密码,默认值是username
+                      login-processing-url="/login.do"  指定登录的控制器(url地址)(权限框架提供的)
+                      default-target-url="/index.jsp"  //如果登录成功跳转的页面(url地址)
+                      authentication-failure-url="/login.jsp"  //登录失败回到登录页(认证失败后跳转的url地址，失败后指定/login.html)
+                      always-use-default-target="true"：登录成功后，始终跳转到default-target-url指定的地址，即登录成功的默认地址
+ -->
+        <security:form-login login-page="/login.jsp"
+                             username-parameter="username"
+                             password-parameter="password"
+                             login-processing-url="/login.do"
+                             default-target-url="/index.jsp"
+                             authentication-failure-url="/login.jsp"
+        />
+        <!--
+        Spring-security采用盗链机制，其中_csrf使用token标识和随机字符，每次访问页面都会随机生成，然后和服务器进行比较，成功可以访问，不成功不能访问。
+
+          csrf：对应CsrfFilter过滤器
+          disabled：是否启用CsrfFilter过滤器，如果使用自定义登录页面需要关闭此项，
+                        否则登录操作会被禁用（403）
+        -->
+        <security:csrf disabled="true"/>
+        <!--
+          logout：退出登录
+          logout-url：退出登录操作对应的请求路径
+          logout-success-url：退出登录后的跳转页面
+          invalidate-session="true" 默认为true,用户在退出后Http session失效
+        -->
+        <security:logout logout-url="/logout.do" logout-success-url="/login.jsp" invalidate-session="true"/>
+    </security:http>
+
+
+    <!--
+      ③ 认证管理：定义登录账号和密码，并授予当前用户访问的角色或权限
+        （1）：将用户名和密码：当前用户具有的角色，写死到配置文件中（现在:入门）
+                security:user name="admin" :登录名
+                authorities="ROLE_ADMIN"   ：角色(ROLE_ADMIN),权限
+                password="admin"          ：密码
+         （2）：用户名和密码，当前用户具有的角色，从数据库中查询（后续）
+    -->
+    <!--
+        认证 描述登录的权限控制信息
+
+            认证管理，定义登录账号名和密码，并授予访问的角色、权限
+              authentication-manager：认证管理器，用于处理认证操作
+    -->
+    <security:authentication-manager>
+        <!-- authentication-provider：认证提供者，执行具体的认证逻辑 -->
+        <security:authentication-provider user-service-ref="userServiceImpl">
+            <!-- 指定密码加密策略 -->
+            <security:password-encoder ref="passwordEncoder"/>
+            <!--            <security:user-service>-->
+            <!--                &lt;!&ndash;登录的用户名  name="admin"-->
+            <!--                   密码 password="123"-->
+            <!--                   ROLE_ 代表为 lin 分配的是角色信息-->
+            <!--                   权限是  authorities="ROLE_ADMIN"-->
+            <!--               &ndash;&gt;-->
+            <!--                <security:user name="lin" authorities="ROLE_ADMIN" password="{noop}123"></security:user>-->
+            <!--            </security:user-service>-->
+        </security:authentication-provider>
+    </security:authentication-manager>
+    <!-- 配置密码加密对象 -->
+    <bean id="passwordEncoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder"/>
+    <!-- 组件扫描，用于扫描Controller -->
+    <context:component-scan base-package="com.atlin"/>
+    <!--mvc的注解驱动-->
+    <mvc:annotation-driven/>
+    <!--开启权限注解支持-->
+    <security:global-method-security pre-post-annotations="enabled"/>
+</beans>
