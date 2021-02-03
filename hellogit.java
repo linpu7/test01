@@ -1,1 +1,1 @@
-now
+time :now
